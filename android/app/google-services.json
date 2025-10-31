@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "993333324199",
+    "project_id": "apk-inkvoyage",
+    "storage_bucket": "apk-inkvoyage.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:993333324199:android:80c8a52d88e84288e22e82",
+        "android_client_info": {
+          "package_name": "com.example.ink_voyage"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDhFSCQUcvt8Lvl4f-ILDFvc84IAn0cDUQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
