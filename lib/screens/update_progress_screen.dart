@@ -337,17 +337,20 @@ class _CompletionDialogState extends State<_CompletionDialog> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: List.generate(5, (index) {
-                return IconButton(
-                  icon: Icon(
-                    index < _rating ? Icons.star : Icons.star_border,
-                    color: Colors.amber,
-                    size: 36,
-                  ),
-                  onPressed: () {
+                return GestureDetector(
+                  onTap: () {
                     setState(() {
                       _rating = index + 1;
                     });
                   },
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    child: Icon(
+                      index < _rating ? Icons.star : Icons.star_border,
+                      color: Colors.amber,
+                      size: 32,
+                    ),
+                  ),
                 );
               }),
             ),

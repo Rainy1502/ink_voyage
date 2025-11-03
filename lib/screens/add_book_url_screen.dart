@@ -89,9 +89,12 @@ class _AddBookDialogState extends State<AddBookDialog>
   }
 
   void _checkUrlImage() {
+    // Allow empty URL (cover is optional)
     if (_imageUrlController.text.trim().isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Masukkan URL gambar terlebih dahulu!')),
+        const SnackBar(
+          content: Text('URL kosong, buku akan menggunakan cover default'),
+        ),
       );
       return;
     }
@@ -116,31 +119,26 @@ class _AddBookDialogState extends State<AddBookDialog>
   Future<void> _addBook() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Check if image is provided (either URL or Upload)
-    if (_tabController.index == 0 && _imageUrlController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('URL gambar wajib diisi!')));
-      return;
-    }
-
-    if (_tabController.index == 1 && _uploadedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Pilih gambar terlebih dahulu!')),
-      );
-      return;
-    }
-
     setState(() => _isLoading = true);
 
-    // Determine which image to use
+    // Determine which image to use (optional, default to placeholder if none provided)
     String imageUrl;
     if (_tabController.index == 0) {
       // URL tab
-      imageUrl = _imageUrlController.text.trim();
+      if (_imageUrlController.text.trim().isNotEmpty) {
+        imageUrl = _imageUrlController.text.trim();
+      } else {
+        // Default placeholder image (larger size for better visibility)
+        imageUrl = 'https://via.placeholder.com/1200x1600.png?text=No+Cover';
+      }
     } else {
       // Upload tab
-      imageUrl = _uploadedImage!.path; // Store local file path
+      if (_uploadedImage != null) {
+        imageUrl = _uploadedImage!.path; // Store local file path
+      } else {
+        // Default placeholder image (larger size for better visibility)
+        imageUrl = 'https://via.placeholder.com/1200x1600.png?text=No+Cover';
+      }
     }
 
     final newBook = Book(
