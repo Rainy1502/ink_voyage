@@ -124,9 +124,12 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   // Filter by search & genre
                   final query = _searchController.text.trim().toLowerCase();
                   final filtered = allBooks.where((b) {
-                    final matchesGenre = _selectedGenre == 'Semua' || (b.genre ?? '') == _selectedGenre;
+                    final matchesGenre =
+                        _selectedGenre == 'Semua' ||
+                        (b.genre ?? '') == _selectedGenre;
                     final haystack = '${b.title} ${b.author} ${b.genre ?? ''}';
-                    final matchesQuery = query.isEmpty || haystack.toLowerCase().contains(query);
+                    final matchesQuery =
+                        query.isEmpty || haystack.toLowerCase().contains(query);
                     return matchesGenre && matchesQuery;
                   }).toList();
 
@@ -223,64 +226,73 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
                         // Single filtered list controlled only by dropdowns (genre + sort)
                         // Build the body widget (either empty-state or the list) to avoid flow-control lint
-                        Builder(builder: (context) {
-                          final Widget bodyContent;
-                          if (filtered.isEmpty) {
-                            bodyContent = Padding(
-                              padding: const EdgeInsets.only(top: 36, bottom: 80),
-                              child: Center(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Icon(
-                                      Icons.menu_book_outlined,
-                                      size: 72,
-                                      color: theme.colorScheme.onSurface.withValues(alpha: 0.22),
-                                    ),
-                                    const SizedBox(height: 18),
-                                    Text(
-                                      'Tidak ada buku ditemukan',
-                                      style: theme.textTheme.titleMedium?.copyWith(
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 8),
-                                    Text(
-                                      'Belum ada buku yang dipublikasikan',
-                                      style: theme.textTheme.bodyMedium?.copyWith(
-                                        color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
-                                      ),
-                                    ),
-                                  ],
+                        Builder(
+                          builder: (context) {
+                            final Widget bodyContent;
+                            if (filtered.isEmpty) {
+                              bodyContent = Padding(
+                                padding: const EdgeInsets.only(
+                                  top: 36,
+                                  bottom: 80,
                                 ),
-                              ),
-                            );
-                          } else {
-                            bodyContent = Column(
-                              children: filtered
-                                  .map(
-                                    (b) => Padding(
-                                      padding: const EdgeInsets.only(
-                                        bottom: 12.0,
+                                child: Center(
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        Icons.menu_book_outlined,
+                                        size: 72,
+                                        color: theme.colorScheme.onSurface
+                                            .withValues(alpha: 0.22),
                                       ),
-                                      child: VerticalBookCard(
-                                        book: b,
-                                        onFollow: () {},
-                                        onAdd: () {},
-                                        onTap: () => Navigator.pushNamed(
-                                          context,
-                                          '/book-detail',
-                                          arguments: b.id,
+                                      const SizedBox(height: 18),
+                                      Text(
+                                        'Tidak ada buku ditemukan',
+                                        style: theme.textTheme.titleMedium
+                                            ?.copyWith(
+                                              fontWeight: FontWeight.w700,
+                                            ),
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Text(
+                                        'Belum ada buku yang dipublikasikan',
+                                        style: theme.textTheme.bodyMedium
+                                            ?.copyWith(
+                                              color: theme.colorScheme.onSurface
+                                                  .withValues(alpha: 0.6),
+                                            ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            } else {
+                              bodyContent = Column(
+                                children: filtered
+                                    .map(
+                                      (b) => Padding(
+                                        padding: const EdgeInsets.only(
+                                          bottom: 12.0,
+                                        ),
+                                        child: VerticalBookCard(
+                                          book: b,
+                                          onFollow: () {},
+                                          onAdd: () {},
+                                          onTap: () => Navigator.pushNamed(
+                                            context,
+                                            '/book-detail',
+                                            arguments: b.id,
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  )
-                                  .toList(),
-                            );
-                          }
+                                    )
+                                    .toList(),
+                              );
+                            }
 
-                          return bodyContent;
-                        }),
+                            return bodyContent;
+                          },
+                        ),
                       ],
                     ),
                   );
