@@ -36,6 +36,11 @@ class AppIcons {
     );
   }
 
+  static Widget navDiscover({Color? color, double size = 24}) {
+    // No SVG asset for discover yet; use built-in icon so feature is available.
+    return Icon(Icons.explore, size: size, color: color ?? Colors.black);
+  }
+
   // Profile Stats Icons
   static Widget totalBooks({Color? color, double size = 32}) {
     return SvgPicture.asset(

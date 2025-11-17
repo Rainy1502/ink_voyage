@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../utils/icon_helper.dart';
 import 'book_list_screen.dart';
+import 'discover_screen.dart';
 import 'progress_screen.dart';
 import 'profile_screen.dart';
 
@@ -15,6 +16,7 @@ class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
   final List<Widget> _screens = const [
+    DiscoverScreen(),
     BookListScreen(),
     ProgressScreen(),
     ProfileScreen(),
@@ -26,6 +28,16 @@ class _HomeScreenState extends State<HomeScreen> {
     });
   }
 
+  // Helpful debug: show mapping at runtime when navigation item tapped
+  void _onItemTappedWithLog(int index) {
+    final labels = ['Discover', 'Daftar Buku', 'Progress', 'Profil'];
+    final label = (index >= 0 && index < labels.length)
+        ? labels[index]
+        : 'unknown';
+    debugPrint('BottomNav tapped: index=$index label=$label');
+    _onItemTapped(index);
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -34,13 +46,20 @@ class _HomeScreenState extends State<HomeScreen> {
       body: _screens[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        onTap: _onItemTappedWithLog,
         selectedItemColor: theme.colorScheme.primary,
         unselectedItemColor: theme.colorScheme.onSurface.withValues(alpha: 0.6),
         selectedFontSize: 12,
         unselectedFontSize: 12,
         type: BottomNavigationBarType.fixed,
         items: [
+          BottomNavigationBarItem(
+            icon: AppIcons.navDiscover(
+              color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+            ),
+            activeIcon: AppIcons.navDiscover(color: theme.colorScheme.primary),
+            label: 'Discover',
+          ),
           BottomNavigationBarItem(
             icon: AppIcons.navBooks(
               color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
