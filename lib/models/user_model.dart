@@ -4,6 +4,8 @@ class User {
   final String email;
   final DateTime joinedDate;
   final String? profileImageUrl;
+  final String role;
+  final Map<String, dynamic>? authorProfile;
 
   User({
     required this.id,
@@ -11,6 +13,8 @@ class User {
     required this.email,
     DateTime? joinedDate,
     this.profileImageUrl,
+    this.role = 'reader',
+    this.authorProfile,
   }) : joinedDate = joinedDate ?? DateTime.now();
 
   // Get initial for avatar
@@ -44,6 +48,8 @@ class User {
     String? email,
     DateTime? joinedDate,
     String? profileImageUrl,
+    String? role,
+    Map<String, dynamic>? authorProfile,
   }) {
     return User(
       id: id ?? this.id,
@@ -51,6 +57,8 @@ class User {
       email: email ?? this.email,
       joinedDate: joinedDate ?? this.joinedDate,
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
+      role: role ?? this.role,
+      authorProfile: authorProfile ?? this.authorProfile,
     );
   }
 
@@ -62,6 +70,8 @@ class User {
       'email': email,
       'joinedDate': joinedDate.toIso8601String(),
       'profileImageUrl': profileImageUrl,
+      'role': role,
+      'authorProfile': authorProfile,
     };
   }
 
@@ -73,6 +83,8 @@ class User {
       email: map['email'] as String,
       joinedDate: DateTime.parse(map['joinedDate'] as String),
       profileImageUrl: map['profileImageUrl'] as String?,
+      role: map['role'] as String? ?? 'reader',
+      authorProfile: map['authorProfile'] as Map<String, dynamic>?,
     );
   }
 

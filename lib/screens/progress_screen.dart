@@ -1,6 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+// 'flutter/services.dart' not needed; material.dart already exports system services
 import 'package:provider/provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../providers/book_provider.dart';
@@ -12,18 +12,13 @@ class ProgressScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Set status bar color to match header gradient top
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFAD46FF), // Match gradient top color
-        statusBarIconBrightness: Brightness.light, // White icons
-        statusBarBrightness: Brightness.dark, // For iOS
-      ),
-    );
-
+    // Use AppBar + extendBodyBehindAppBar to let the header gradient draw behind the status bar
     return Scaffold(
+      extendBodyBehindAppBar: true,
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       backgroundColor: const Color(0xFFF3F3F5),
       body: SafeArea(
+        top: false,
         child: Consumer<BookProvider>(
           builder: (context, provider, child) {
             final totalPages = provider.books.fold<int>(
@@ -123,7 +118,7 @@ class ProgressScreen extends StatelessWidget {
           bottom: BorderSide(color: Color(0xFFC27AFF), width: 1.18),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      padding: EdgeInsets.fromLTRB(24, 50, 24, 16),
       child: Column(
         children: [
           // Title

@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
+// 'flutter/services.dart' not needed; material.dart already exports platform services
 import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/book_provider.dart';
+import 'become_author_screen.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -54,20 +55,438 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Set status bar color to match header gradient top
-    SystemChrome.setSystemUIOverlayStyle(
-      const SystemUiOverlayStyle(
-        statusBarColor: Color(0xFFAD46FF), // Match gradient top color
-        statusBarIconBrightness: Brightness.light, // White icons
-        statusBarBrightness: Brightness.dark, // For iOS
+  Widget _buildAuthorProfileCard(BuildContext context, user) {
+    final authorProfile = user.authorProfile as Map<String, dynamic>?;
+    final bio = (authorProfile != null && authorProfile['bio'] != null)
+        ? authorProfile['bio'].toString()
+        : 'Belum ada bio.';
+
+    String authorSince = '';
+    try {
+      if (authorProfile != null && authorProfile['appliedAt'] != null) {
+        final dt = DateTime.parse(authorProfile['appliedAt'].toString());
+        final months = [
+          'Januari',
+          'Februari',
+          'Maret',
+          'April',
+          'Mei',
+          'Juni',
+          'Juli',
+          'Agustus',
+          'September',
+          'Oktober',
+          'November',
+          'Desember',
+        ];
+        authorSince = '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      }
+    } catch (_) {
+      authorSince = '';
+    }
+
+    // Stats placeholders (0 for now)
+    const followers = '0';
+    const published = '0';
+    const views = '0';
+    const avgRating = '0.0';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(1.333),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.06),
+          width: 1.162,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        // adjust top/bottom padding
+        padding: const EdgeInsets.fromLTRB(16, 14, 16, 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF8200DB),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Center(
+                    child: Icon(Icons.edit, color: Colors.white),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: const [
+                    Text(
+                      'Author Profile',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Statistik karya Anda',
+                      style: TextStyle(fontSize: 14, color: Color(0xFF717182)),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            // Small gap between header and bio
+            const SizedBox(height: 8),
+
+            // Bio box
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF7F3FB),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: const [
+                      Icon(Icons.menu_book, size: 18, color: Color(0xFF8200DB)),
+                      SizedBox(width: 8),
+                      Text(
+                        'Bio',
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(bio),
+                ],
+              ),
+            ),
+
+            // small gap between bio and stats
+            const SizedBox(height: 6),
+
+            // Two rows with two stat cards each — deterministic layout
+            Column(
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: _smallStatCard(
+                        icon: Icons.group,
+                        value: followers,
+                        label: 'Followers',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _smallStatCard(
+                        icon: Icons.menu_book,
+                        value: published,
+                        label: 'Published',
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _smallStatCard(
+                        icon: Icons.remove_red_eye,
+                        value: views,
+                        label: 'Total Views',
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: _smallStatCard(
+                        icon: Icons.star_border,
+                        value: avgRating,
+                        label: 'Avg Rating',
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+
+            const SizedBox(height: 12),
+
+            if (authorSince.isNotEmpty)
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Icon(
+                    Icons.calendar_today_outlined,
+                    size: 18,
+                    color: Color(0xFF717182),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Author sejak $authorSince',
+                    style: const TextStyle(color: Color(0xFF717182)),
+                  ),
+                ],
+              ),
+          ],
+        ),
       ),
     );
+  }
 
+  Widget _smallStatCard({
+    required IconData icon,
+    required String value,
+    required String label,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.06),
+          width: 1.0,
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Icon(icon, color: const Color(0xFF8200DB)),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 20, color: Color(0xFF8200DB)),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 6),
+          Text(
+            label,
+            style: const TextStyle(fontSize: 12, color: Color(0xFF6A7282)),
+            textAlign: TextAlign.center,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRoleCard(BuildContext context, user) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(1.333),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        border: Border.all(
+          color: Colors.black.withValues(alpha: 0.1),
+          width: 1.162,
+        ),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        child: Row(
+          children: [
+            Container(
+              width: 48,
+              height: 48,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEDCCFF),
+                border: Border.all(
+                  color: const Color(0xFFDAB2FF),
+                  width: 1.162,
+                ),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Center(
+                child: Builder(
+                  builder: (context) {
+                    final role = (user.role ?? 'reader')
+                        .toString()
+                        .toLowerCase();
+                    if (role == 'author') {
+                      return Image.asset(
+                        'assets/icons/pen.png',
+                        width: 20,
+                        height: 20,
+                        fit: BoxFit.contain,
+                        errorBuilder: (ctx, err, st) => const Icon(
+                          Icons.edit,
+                          size: 20,
+                          color: Color(0xFF8200DB),
+                        ),
+                      );
+                    }
+
+                    return const Icon(
+                      Icons.person_outline,
+                      size: 20,
+                      color: Color(0xFF8200DB),
+                    );
+                  },
+                ),
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Role',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.normal,
+                      color: Color(0xFF6A7282),
+                    ),
+                  ),
+
+                  const SizedBox(height: 6),
+
+                  // Dynamic badge based on user's role
+                  Builder(
+                    builder: (context) {
+                      final role = user.role.toString().toLowerCase();
+                      if (role == 'author') {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 8,
+                          ),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            border: Border.all(
+                              color: const Color(0xFF8200DB),
+                              width: 2,
+                            ),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: const Text(
+                            'Author',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.normal,
+                              color: Color(0xFF8200DB),
+                            ),
+                          ),
+                        );
+                      }
+
+                      // default: reader
+                      return Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 4,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(
+                            color: const Color(0xFF2D9CFF),
+                            width: 1,
+                          ),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: const Text(
+                          'Reader',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.normal,
+                            color: Color(0xFF2563EB),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+
+            const SizedBox(width: 12),
+
+            // Button behavior depends on role
+            Builder(
+              builder: (context) {
+                final role = user.role.toString().toLowerCase();
+                if (role == 'author') {
+                  return OutlinedButton.icon(
+                    onPressed: null,
+                    icon: const Icon(
+                      Icons.verified,
+                      size: 18,
+                      color: Color(0xFF8200DB),
+                    ),
+                    label: const Text(
+                      'Author',
+                      style: TextStyle(color: Color(0xFF8200DB)),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 12,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  );
+                }
+
+                return ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => const BecomeAuthorScreen(),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.edit, size: 18),
+                  label: const Text('Jadi Author'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF8200DB),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 14,
+                      vertical: 12,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Use AppBar + extendBodyBehindAppBar so header gradient sits behind status bar
     return Scaffold(
+      extendBodyBehindAppBar: true,
       backgroundColor: const Color(0xFFF3F3F5),
       body: SafeArea(
+        top: false,
         child: Consumer<AuthProvider>(
           builder: (context, authProvider, child) {
             final user = authProvider.currentUser;
@@ -90,6 +509,18 @@ class ProfileScreen extends StatelessWidget {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
+                          const SizedBox(height: 8),
+
+                          // Role Card (overlapping header)
+                          _buildRoleCard(context, user),
+
+                          // Author profile card (only when user is author)
+                          if (user.role.toString().toLowerCase() ==
+                              'author') ...[
+                            const SizedBox(height: 16),
+                            _buildAuthorProfileCard(context, user),
+                          ],
+
                           const SizedBox(height: 16),
 
                           // Statistics Grid
@@ -198,7 +629,7 @@ class ProfileScreen extends StatelessWidget {
           bottom: BorderSide(color: Color(0xFFDAB2FF), width: 1.162),
         ),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 72),
+      padding: const EdgeInsets.fromLTRB(24, 50, 24, 72),
       child: Column(
         children: [
           // Title

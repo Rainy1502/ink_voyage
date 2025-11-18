@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Outer circle stroke -->
+  <circle cx="12" cy="12" r="9" fill="none" stroke="#6E7480" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Inner diamond (compass) - stroked outline, transparent fill -->
+  <g transform="rotate(-20 12 12)">
+    <path d="M12 8.2 L14.2 12 L12 15.8 L9.8 12 Z" fill="none" stroke="#6E7480" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" />
+    <!-- inner small diamond accent -->
+    <path d="M12 9.4 L13.2 12 L12 14.6 L10.8 12 Z" fill="none" stroke="#6E7480" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24">
+  <!-- Outer circle -->
+  <circle cx="12" cy="12" r="9" fill="none" stroke="#6B7280" stroke-width="1.6" />
+  <!-- Compass diamond -->
+  <g transform="rotate(-20 12 12)">
+    <path d="M12 7.2 L14.8 12 L12 16.8 L9.2 12 Z" fill="#6B7280" />
+    <path d="M12 8.6 L13.6 12 L12 15.4 L10.4 12 Z" fill="#FFFFFF" opacity="0.0"/>
+  </g>
+</svg>

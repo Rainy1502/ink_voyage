@@ -194,6 +194,47 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
+  // Become author: update user document with role and author profile
+  Future<bool> becomeAuthor({
+    required String bio,
+    required String experience,
+    required String motivation,
+  }) async {
+    if (_currentUser == null) return false;
+
+    try {
+      _isLoading = true;
+      notifyListeners();
+
+      final authorProfile = {
+        'bio': bio,
+        'experience': experience,
+        'motivation': motivation,
+        // For now auto-approve the application so user becomes author immediately
+        'approved': true,
+        'appliedAt': DateTime.now().toIso8601String(),
+      };
+
+      await _firestore.collection('users').doc(_currentUser!.id).update({
+        'role': 'author',
+        'authorProfile': authorProfile,
+      });
+
+      _currentUser = _currentUser!.copyWith(
+        role: 'author',
+        authorProfile: authorProfile,
+      );
+      _isLoading = false;
+      notifyListeners();
+      return true;
+    } catch (e) {
+      _isLoading = false;
+      _errorMessage = 'Gagal mengajukan menjadi author: $e';
+      notifyListeners();
+      return false;
+    }
+  }
+
   // Reset password
   Future<bool> resetPassword(String email) async {
     try {
