@@ -338,71 +338,80 @@ class FollowersDialog extends StatelessWidget {
               future: _checkIfFollowing(currentUserId, follower['id']),
               builder: (context, snapshot) {
                 final isFollowing = snapshot.data ?? false;
-                
+
                 return IconButton(
-                onPressed: () async {
-                  try {
-                    final followerRef = FirebaseFirestore.instance
-                        .collection('users')
-                        .doc(follower['id'])
-                        .collection('followers')
-                        .doc(currentUserId);
-
-                    if (isFollowing) {
-                      // Unfollow
-                      await followerRef.delete();
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Unfollowed ${follower['name']}')),
-                        );
-                      }
-                    } else {
-                      // Follow back
-                      final userDoc = await FirebaseFirestore.instance
+                  onPressed: () async {
+                    try {
+                      final followerRef = FirebaseFirestore.instance
                           .collection('users')
-                          .doc(currentUserId)
-                          .get();
-                      
-                      final userData = userDoc.data();
-                      
-                      await followerRef.set({
-                        'userId': currentUserId,
-                        'name': userData?['name'] ?? 'Unknown User',
-                        'email': userData?['email'] ?? '',
-                        'role': userData?['role'] ?? 'reader',
-                        'followedAt': FieldValue.serverTimestamp(),
-                      });
+                          .doc(follower['id'])
+                          .collection('followers')
+                          .doc(currentUserId);
 
+                      if (isFollowing) {
+                        // Unfollow
+                        await followerRef.delete();
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Unfollowed ${follower['name']}'),
+                            ),
+                          );
+                        }
+                      } else {
+                        // Follow back
+                        final userDoc = await FirebaseFirestore.instance
+                            .collection('users')
+                            .doc(currentUserId)
+                            .get();
+
+                        final userData = userDoc.data();
+
+                        await followerRef.set({
+                          'userId': currentUserId,
+                          'name': userData?['name'] ?? 'Unknown User',
+                          'email': userData?['email'] ?? '',
+                          'role': userData?['role'] ?? 'reader',
+                          'followedAt': FieldValue.serverTimestamp(),
+                        });
+
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Following ${follower['name']}'),
+                            ),
+                          );
+                        }
+                      }
+                    } catch (e) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(content: Text('Following ${follower['name']}')),
+                          SnackBar(content: Text('Error: ${e.toString()}')),
                         );
                       }
                     }
-                  } catch (e) {
-                    if (context.mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error: ${e.toString()}')),
-                      );
-                    }
-                  }
-                },
-                icon: Icon(
-                  isFollowing ? Icons.person_remove_alt_1 : Icons.person_add_alt,
-                  size: 20,
-                  color: isFollowing ? Colors.red : const Color(0xFF10B981),
-                ),
-                padding: EdgeInsets.zero,
-                constraints: const BoxConstraints(),
-              );
-            },
-          ),
+                  },
+                  icon: Icon(
+                    isFollowing
+                        ? Icons.person_remove_alt_1
+                        : Icons.person_add_alt,
+                    size: 20,
+                    color: isFollowing ? Colors.red : const Color(0xFF10B981),
+                  ),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                );
+              },
+            ),
         ],
       ),
     );
   }
 
-  Future<bool> _checkIfFollowing(String currentUserId, String followerId) async {
+  Future<bool> _checkIfFollowing(
+    String currentUserId,
+    String followerId,
+  ) async {
     try {
       final followerDoc = await FirebaseFirestore.instance
           .collection('users')
