@@ -3,6 +3,17 @@ import 'package:flutter_svg/flutter_svg.dart';
 
 class AppIcons {
   // Navigation Icons
+  static Widget navDashboard({Color? color, double size = 24}) {
+    return SvgPicture.asset(
+      'assets/images/icons/nav_dashboard_icon.svg',
+      width: size,
+      height: size,
+      colorFilter: color != null
+          ? ColorFilter.mode(color, BlendMode.srcIn)
+          : null,
+    );
+  }
+
   static Widget navBooks({Color? color, double size = 24}) {
     return SvgPicture.asset(
       'assets/images/icons/nav_books_icon.svg',

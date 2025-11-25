@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:provider/provider.dart';
-import 'package:ink_voyage/providers/book_provider.dart';
-import 'package:ink_voyage/widgets/vertical_book_card.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'published_book_detail_screen.dart';
 
 class DiscoverScreen extends StatefulWidget {
   const DiscoverScreen({super.key});
@@ -106,17 +105,46 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   top: Radius.circular(18),
                 ),
               ),
-              child: Consumer<BookProvider>(
-                builder: (context, provider, _) {
-                  // NOTE: Discover should show works uploaded by authors (feature coming later).
-                  // For now keep Discover empty so it won't surface books from the main "Daftar Buku" list.
-                  final allBooks = <dynamic>[];
+              child: StreamBuilder<QuerySnapshot>(
+                stream: FirebaseFirestore.instance
+                    .collection('published_books')
+                    .snapshots(),
+                builder: (context, snapshot) {
+                  // Show loading or error
+                  if (!snapshot.hasData) {
+                    return const Center(child: CircularProgressIndicator());
+                  }
+
+                  if (snapshot.hasError) {
+                    return Center(child: Text('Error: ${snapshot.error}'));
+                  }
+
+                  final allBooks = snapshot.data!.docs.map((doc) {
+                    final data = doc.data() as Map<String, dynamic>;
+                    return {
+                      'id': doc.id,
+                      'title': data['title'] ?? '',
+                      'author': data['author'] ?? '',
+                      'authorId': data['authorId'],
+                      'genre': data['genre'] ?? '',
+                      'coverUrl': data['coverUrl'] ?? '',
+                      'description': data['description'] ?? '',
+                      'contentPreview': data['contentPreview'],
+                      'totalPages': data['totalPages'] ?? 0,
+                      'rating': ((data['rating'] ?? 0.0) as num).toDouble(),
+                      'ratingsCount': data['ratingsCount'] ?? 0,
+                      'views': data['views'] ?? 0,
+                      'readers': data['readers'] ?? 0,
+                      'publishedAt': data['publishedAt'] ?? Timestamp.now(),
+                    };
+                  }).toList();
 
                   // Build genre list
                   final genres = <String>{'Semua'};
                   for (final b in allBooks) {
-                    if (b.genre != null && b.genre!.trim().isNotEmpty) {
-                      genres.add(b.genre!);
+                    final genre = b['genre'] as String?;
+                    if (genre != null && genre.trim().isNotEmpty) {
+                      genres.add(genre);
                     }
                   }
                   final genreList = genres.toList();
@@ -126,8 +154,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                   final filtered = allBooks.where((b) {
                     final matchesGenre =
                         _selectedGenre == 'Semua' ||
-                        (b.genre ?? '') == _selectedGenre;
-                    final haystack = '${b.title} ${b.author} ${b.genre ?? ''}';
+                        (b['genre'] ?? '') == _selectedGenre;
+                    final haystack =
+                        '${b['title']} ${b['author']} ${b['genre'] ?? ''}';
                     final matchesQuery =
                         query.isEmpty || haystack.toLowerCase().contains(query);
                     return matchesGenre && matchesQuery;
@@ -135,15 +164,21 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
 
                   // Sorting
                   if (_selectedSort == 'Terbaru') {
-                    filtered.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+                    filtered.sort((a, b) {
+                      final aTime = a['publishedAt'] as Timestamp;
+                      final bTime = b['publishedAt'] as Timestamp;
+                      return bTime.compareTo(aTime);
+                    });
                   } else if (_selectedSort == 'Rating Tertinggi') {
                     filtered.sort(
-                      (a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0),
+                      (a, b) => (b['rating'] as double).compareTo(
+                        a['rating'] as double,
+                      ),
                     );
                   } else if (_selectedSort == 'Paling Populer') {
-                    // popular: for now sort by rating as a simple proxy
                     filtered.sort(
-                      (a, b) => (b.rating ?? 0).compareTo(a.rating ?? 0),
+                      (a, b) =>
+                          (b['views'] as int).compareTo(a['views'] as int),
                     );
                   }
 
@@ -274,15 +309,9 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                                         padding: const EdgeInsets.only(
                                           bottom: 12.0,
                                         ),
-                                        child: VerticalBookCard(
-                                          book: b,
-                                          onFollow: () {},
-                                          onAdd: () {},
-                                          onTap: () => Navigator.pushNamed(
-                                            context,
-                                            '/book-detail',
-                                            arguments: b.id,
-                                          ),
+                                        child: _buildPublishedBookCard(
+                                          context,
+                                          b,
                                         ),
                                       ),
                                     )
@@ -301,6 +330,176 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPublishedBookCard(
+    BuildContext context,
+    Map<String, dynamic> book,
+  ) {
+    final theme = Theme.of(context);
+
+    return InkWell(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => PublishedBookDetailScreen(book: book),
+          ),
+        );
+      },
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: theme.colorScheme.outline.withValues(alpha: 0.5),
+          ),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Cover image
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: Image.network(
+                book['coverUrl'] as String,
+                width: 80,
+                height: 120,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: 80,
+                    height: 120,
+                    color: theme.colorScheme.primary.withValues(alpha: 0.1),
+                    child: Icon(
+                      Icons.book,
+                      size: 40,
+                      color: theme.colorScheme.primary,
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(width: 12),
+
+            // Book info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Title
+                  Text(
+                    book['title'] as String,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w700,
+                      fontFamily: 'Arimo',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 4),
+
+                  // Author
+                  Text(
+                    'by ${book['author']}',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.6),
+                      fontFamily: 'Arimo',
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Genre badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFE9D5FF),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      book['genre'] as String,
+                      style: theme.textTheme.labelSmall?.copyWith(
+                        color: const Color(0xFF7C3AED),
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Arimo',
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Description preview
+                  Text(
+                    book['description'] as String,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurface.withValues(alpha: 0.7),
+                      height: 1.4,
+                      fontFamily: 'Arimo',
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Stats row
+                  Row(
+                    children: [
+                      // Views
+                      Icon(
+                        Icons.remove_red_eye,
+                        size: 14,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${book['views']}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'Arimo',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Pages
+                      Icon(
+                        Icons.description,
+                        size: 14,
+                        color: theme.colorScheme.onSurface.withValues(
+                          alpha: 0.5,
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${book['totalPages']}',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'Arimo',
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+
+                      // Rating
+                      Icon(Icons.star, size: 14, color: Colors.amber[700]),
+                      const SizedBox(width: 4),
+                      Text(
+                        (book['rating'] as double).toStringAsFixed(1),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          fontFamily: 'Arimo',
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
