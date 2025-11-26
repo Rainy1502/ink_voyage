@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 // 'flutter/services.dart' not needed; material.dart already exports platform services
 import 'package:provider/provider.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../providers/auth_provider.dart';
 import '../providers/book_provider.dart';
 import 'become_author_screen.dart';
@@ -85,12 +86,74 @@ class ProfileScreen extends StatelessWidget {
       authorSince = '';
     }
 
-    // Stats placeholders (0 for now)
-    const followers = '0';
-    const published = '0';
-    const views = '0';
-    const avgRating = '0.0';
+    // Fetch real-time stats from Firestore
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('published_books')
+          .where('authorId', isEqualTo: user.id)
+          .snapshots(),
+      builder: (context, booksSnapshot) {
+        // Default values
+        String published = '0';
+        String views = '0';
+        String avgRating = '0.0';
 
+        // Calculate stats if data available
+        if (booksSnapshot.hasData) {
+          final books = booksSnapshot.data!.docs;
+          published = books.length.toString();
+
+          if (books.isNotEmpty) {
+            final totalViews = books.fold<int>(0, (sum, doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return sum + ((data['views'] ?? 0) as int);
+            });
+            views = totalViews.toString();
+
+            final totalRating = books.fold<double>(0, (sum, doc) {
+              final data = doc.data() as Map<String, dynamic>;
+              return sum + ((data['rating'] ?? 0.0) as num).toDouble();
+            });
+            avgRating = (totalRating / books.length).toStringAsFixed(1);
+          }
+        }
+
+        // Fetch followers count
+        return StreamBuilder<QuerySnapshot>(
+          stream: FirebaseFirestore.instance
+              .collection('users')
+              .doc(user.id)
+              .collection('followers')
+              .snapshots(),
+          builder: (context, followersSnapshot) {
+            final followers = followersSnapshot.hasData
+                ? followersSnapshot.data!.docs.length.toString()
+                : '0';
+
+            return _buildAuthorProfileCardContent(
+              context,
+              bio,
+              authorSince,
+              followers,
+              published,
+              views,
+              avgRating,
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildAuthorProfileCardContent(
+    BuildContext context,
+    String bio,
+    String authorSince,
+    String followers,
+    String published,
+    String views,
+    String avgRating,
+  ) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(1.333),
