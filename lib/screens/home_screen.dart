@@ -7,6 +7,7 @@ import 'book_list_screen.dart';
 import 'discover_screen.dart';
 import 'progress_screen.dart';
 import 'profile_screen.dart';
+import 'moderator_dashboard_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -18,8 +19,19 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  List<Widget> _getScreens(bool isAuthor) {
-    if (isAuthor) {
+  List<Widget> _getScreens(String? role) {
+    // Moderator gets moderator dashboard
+    if (role == 'moderator') {
+      return const [
+        ModeratorDashboardScreen(),
+        DiscoverScreen(),
+        BookListScreen(),
+        ProgressScreen(),
+        ProfileScreen(),
+      ];
+    }
+    // Author gets author dashboard
+    if (role == 'author') {
       return const [
         AuthorDashboardScreen(),
         DiscoverScreen(),
@@ -28,6 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
         ProfileScreen(),
       ];
     }
+    // Reader (default)
     return const [
       DiscoverScreen(),
       BookListScreen(),
@@ -45,9 +58,9 @@ class _HomeScreenState extends State<HomeScreen> {
   // Helpful debug: show mapping at runtime when navigation item tapped
   void _onItemTappedWithLog(int index) {
     final authProvider = context.read<AuthProvider>();
-    final isAuthor = authProvider.currentUser?.role == 'author';
+    final role = authProvider.currentUser?.role;
 
-    final labels = isAuthor
+    final labels = (role == 'author' || role == 'moderator')
         ? ['Dashboard', 'Discover', 'Daftar Buku', 'Progress', 'Profil']
         : ['Discover', 'Daftar Buku', 'Progress', 'Profil'];
     final label = (index >= 0 && index < labels.length)
@@ -61,10 +74,10 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final authProvider = context.watch<AuthProvider>();
-    final isAuthor = authProvider.currentUser?.role == 'author';
-    final screens = _getScreens(isAuthor);
+    final role = authProvider.currentUser?.role;
+    final screens = _getScreens(role);
 
-    // Reset index if out of bounds (e.g., after role change from author to reader)
+    // Reset index if out of bounds (e.g., after role change)
     if (_selectedIndex >= screens.length) {
       _selectedIndex = 0;
     }
@@ -80,7 +93,8 @@ class _HomeScreenState extends State<HomeScreen> {
         unselectedFontSize: 12,
         type: BottomNavigationBarType.fixed,
         items: [
-          if (isAuthor)
+          // Show Dashboard for author or moderator
+          if (role == 'author' || role == 'moderator')
             BottomNavigationBarItem(
               icon: AppIcons.navDashboard(
                 color: theme.colorScheme.onSurface.withValues(alpha: 0.6),

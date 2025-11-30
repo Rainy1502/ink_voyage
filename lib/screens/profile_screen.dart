@@ -9,6 +9,61 @@ import 'become_author_screen.dart';
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  // Helper method to safely check application status
+  bool _hasPendingApplication(dynamic user) {
+    try {
+      if (user == null) return false;
+      final status = user.authorApplicationStatus;
+      return status != null && status == 'pending';
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>> _fetchAuthorStats(String userId) async {
+    try {
+      // Fetch published books (only status = 'published')
+      final booksSnapshot = await FirebaseFirestore.instance
+          .collection('published_books')
+          .where('authorId', isEqualTo: userId)
+          .where('status', isEqualTo: 'published')
+          .get();
+
+      int totalViews = 0;
+      int publishedBooks = booksSnapshot.docs.length;
+      double totalRating = 0;
+      int ratingCount = 0;
+
+      for (var doc in booksSnapshot.docs) {
+        final data = doc.data();
+        totalViews += (data['views'] ?? 0) as int;
+
+        final rating = ((data['rating'] ?? 0.0) as num).toDouble();
+        final ratings = (data['ratingsCount'] ?? 0) as int;
+        totalRating += rating * ratings;
+        ratingCount += ratings;
+      }
+
+      double avgRating = ratingCount > 0 ? totalRating / ratingCount : 0.0;
+
+      // Fetch followers count
+      final followersSnapshot = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(userId)
+          .collection('followers')
+          .get();
+
+      return {
+        'published': publishedBooks,
+        'views': totalViews,
+        'avgRating': avgRating.toStringAsFixed(1),
+        'followers': followersSnapshot.docs.length,
+      };
+    } catch (e) {
+      return {'published': 0, 'views': 0, 'avgRating': '0.0', 'followers': 0};
+    }
+  }
+
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,
@@ -86,60 +141,52 @@ class ProfileScreen extends StatelessWidget {
       authorSince = '';
     }
 
-    // Fetch real-time stats from Firestore
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('published_books')
-          .where('authorId', isEqualTo: user.id)
-          .snapshots(),
-      builder: (context, booksSnapshot) {
+    // Fetch stats from Firestore using FutureBuilder for one-time load
+    return FutureBuilder<Map<String, dynamic>>(
+      future: _fetchAuthorStats(user.id),
+      builder: (context, snapshot) {
         // Default values
         String published = '0';
         String views = '0';
         String avgRating = '0.0';
+        String followers = '0';
 
-        // Calculate stats if data available
-        if (booksSnapshot.hasData) {
-          final books = booksSnapshot.data!.docs;
-          published = books.length.toString();
-
-          if (books.isNotEmpty) {
-            final totalViews = books.fold<int>(0, (sum, doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return sum + ((data['views'] ?? 0) as int);
-            });
-            views = totalViews.toString();
-
-            final totalRating = books.fold<double>(0, (sum, doc) {
-              final data = doc.data() as Map<String, dynamic>;
-              return sum + ((data['rating'] ?? 0.0) as num).toDouble();
-            });
-            avgRating = (totalRating / books.length).toStringAsFixed(1);
-          }
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(40),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              border: Border.all(
+                color: Colors.black.withValues(alpha: 0.1),
+                width: 1.162,
+              ),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF8200DB)),
+              ),
+            ),
+          );
         }
 
-        // Fetch followers count
-        return StreamBuilder<QuerySnapshot>(
-          stream: FirebaseFirestore.instance
-              .collection('users')
-              .doc(user.id)
-              .collection('followers')
-              .snapshots(),
-          builder: (context, followersSnapshot) {
-            final followers = followersSnapshot.hasData
-                ? followersSnapshot.data!.docs.length.toString()
-                : '0';
+        if (snapshot.hasData && snapshot.data != null) {
+          final data = snapshot.data!;
+          published = data['published'].toString();
+          views = data['views'].toString();
+          avgRating = data['avgRating'].toString();
+          followers = data['followers'].toString();
+        }
 
-            return _buildAuthorProfileCardContent(
-              context,
-              bio,
-              authorSince,
-              followers,
-              published,
-              views,
-              avgRating,
-            );
-          },
+        return _buildAuthorProfileCardContent(
+          context,
+          bio,
+          authorSince,
+          followers,
+          published,
+          views,
+          avgRating,
         );
       },
     );
@@ -350,7 +397,56 @@ class ProfileScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildApplicationPendingCard(BuildContext context, user) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: const Color(0xFFEFF6FF), // blue-50
+        border: Border.all(
+          color: const Color(0xFFBEDBFF), // blue-200
+          width: 1.333,
+        ),
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.info_outline, size: 16, color: Color(0xFF1447E6)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Text(
+                  'Aplikasi Author Sedang Direview',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1C398E),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Moderator sedang meninjau aplikasi Anda. Anda akan diberi notifikasi setelah direview.',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: const Color(0xFF1447E6),
+                    height: 1.333,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildRoleCard(BuildContext context, user) {
+    // Check if user has pending application - safely access the property
+    final hasPendingApplication = _hasPendingApplication(user);
+
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(1.333),
@@ -364,178 +460,257 @@ class ProfileScreen extends StatelessWidget {
       ),
       child: Padding(
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
-        child: Row(
+        child: Column(
           children: [
-            Container(
-              width: 48,
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEDCCFF),
-                border: Border.all(
-                  color: const Color(0xFFDAB2FF),
-                  width: 1.162,
-                ),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Center(
-                child: Builder(
-                  builder: (context) {
-                    final role = (user.role ?? 'reader')
-                        .toString()
-                        .toLowerCase();
-                    if (role == 'author') {
-                      return Image.asset(
-                        'assets/icons/pen.png',
-                        width: 20,
-                        height: 20,
-                        fit: BoxFit.contain,
-                        errorBuilder: (ctx, err, st) => const Icon(
-                          Icons.edit,
-                          size: 20,
-                          color: Color(0xFF8200DB),
-                        ),
-                      );
-                    }
-
-                    return const Icon(
-                      Icons.person_outline,
-                      size: 20,
-                      color: Color(0xFF8200DB),
-                    );
-                  },
-                ),
-              ),
-            ),
-
-            const SizedBox(width: 12),
-
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Role',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.normal,
-                      color: Color(0xFF6A7282),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEDCCFF),
+                    border: Border.all(
+                      color: const Color(0xFFDAB2FF),
+                      width: 1.162,
                     ),
+                    borderRadius: BorderRadius.circular(10),
                   ),
-
-                  const SizedBox(height: 6),
-
-                  // Dynamic badge based on user's role
-                  Builder(
-                    builder: (context) {
-                      final role = user.role.toString().toLowerCase();
-                      if (role == 'author') {
-                        return Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 8,
-                          ),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            border: Border.all(
-                              color: const Color(0xFF8200DB),
-                              width: 2,
-                            ),
-                            borderRadius: BorderRadius.circular(18),
-                          ),
-                          child: const Text(
-                            'Author',
-                            style: TextStyle(
-                              fontSize: 14,
-                              fontWeight: FontWeight.normal,
+                  child: Center(
+                    child: Builder(
+                      builder: (context) {
+                        final role = (user.role ?? 'reader')
+                            .toString()
+                            .toLowerCase();
+                        if (role == 'author') {
+                          return Image.asset(
+                            'assets/icons/pen.png',
+                            width: 20,
+                            height: 20,
+                            fit: BoxFit.contain,
+                            errorBuilder: (ctx, err, st) => const Icon(
+                              Icons.edit,
+                              size: 20,
                               color: Color(0xFF8200DB),
                             ),
-                          ),
-                        );
-                      }
+                          );
+                        }
 
-                      // default: reader
+                        return const Icon(
+                          Icons.person_outline,
+                          size: 20,
+                          color: Color(0xFF8200DB),
+                        );
+                      },
+                    ),
+                  ),
+                ),
+
+                const SizedBox(width: 12),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        'Role',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.normal,
+                          color: Color(0xFF6A7282),
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      // Dynamic badge based on user's role
+                      Builder(
+                        builder: (context) {
+                          final role = user.role.toString().toLowerCase();
+
+                          if (role == 'moderator') {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(
+                                  color: const Color(0xFFDC2626),
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: const Text(
+                                'Moderator',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFFDC2626),
+                                ),
+                              ),
+                            );
+                          }
+
+                          if (role == 'author') {
+                            return Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                border: Border.all(
+                                  color: const Color(0xFF8200DB),
+                                  width: 2,
+                                ),
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                              child: const Text(
+                                'Author',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.normal,
+                                  color: Color(0xFF8200DB),
+                                ),
+                              ),
+                            );
+                          }
+
+                          // default: reader
+                          return Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 4,
+                            ),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              border: Border.all(
+                                color: const Color(0xFF2D9CFF),
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Text(
+                              'Reader',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.normal,
+                                color: Color(0xFF2563EB),
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 12), // Badge/Button on the right side
+                Builder(
+                  builder: (context) {
+                    final role = user.role.toString().toLowerCase();
+
+                    // Show "Application Pending" badge if user has pending application
+                    if (hasPendingApplication) {
                       return Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 4,
                         ),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: const Color(0xFFFEF3C7),
                           border: Border.all(
-                            color: const Color(0xFF2D9CFF),
+                            color: const Color(0xFFFCD34D),
                             width: 1,
                           ),
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(6),
                         ),
-                        child: const Text(
-                          'Reader',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.normal,
-                            color: Color(0xFF2563EB),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.schedule,
+                              size: 12,
+                              color: Color(0xFFD97706),
+                            ),
+                            SizedBox(width: 4),
+                            Text(
+                              'Pending',
+                              style: TextStyle(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w500,
+                                color: Color(0xFFD97706),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+
+                    // Moderator: no button (to prevent text overflow)
+                    if (role == 'moderator') {
+                      return const SizedBox.shrink();
+                    }
+
+                    // Author: show verified badge
+                    if (role == 'author') {
+                      return OutlinedButton.icon(
+                        onPressed: null,
+                        icon: const Icon(
+                          Icons.verified,
+                          size: 18,
+                          color: Color(0xFF8200DB),
+                        ),
+                        label: const Text(
+                          'Author',
+                          style: TextStyle(color: Color(0xFF8200DB)),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 12,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
                           ),
                         ),
                       );
-                    },
-                  ),
-                ],
-              ),
-            ),
+                    }
 
-            const SizedBox(width: 12),
-
-            // Button behavior depends on role
-            Builder(
-              builder: (context) {
-                final role = user.role.toString().toLowerCase();
-                if (role == 'author') {
-                  return OutlinedButton.icon(
-                    onPressed: null,
-                    icon: const Icon(
-                      Icons.verified,
-                      size: 18,
-                      color: Color(0xFF8200DB),
-                    ),
-                    label: const Text(
-                      'Author',
-                      style: TextStyle(color: Color(0xFF8200DB)),
-                    ),
-                    style: OutlinedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 12,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  );
-                }
-
-                return ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(
-                        builder: (_) => const BecomeAuthorScreen(),
+                    // Reader: show become author button
+                    return ElevatedButton.icon(
+                      onPressed: () {
+                        Navigator.of(context).push(
+                          MaterialPageRoute(
+                            builder: (_) => const BecomeAuthorScreen(),
+                          ),
+                        );
+                      },
+                      icon: const Icon(Icons.edit, size: 18),
+                      label: const Text('Jadi Author'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF8200DB),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
                       ),
                     );
                   },
-                  icon: const Icon(Icons.edit, size: 18),
-                  label: const Text('Jadi Author'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF8200DB),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 14,
-                      vertical: 12,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                );
-              },
+                ),
+              ],
             ),
+
+            // Show pending info card if application is pending
+            if (hasPendingApplication) ...[
+              const SizedBox(height: 12),
+              _buildApplicationPendingCard(context, user),
+            ],
           ],
         ),
       ),

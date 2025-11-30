@@ -51,8 +51,8 @@ class _AuthorDashboardScreenState extends State<AuthorDashboardScreen> {
             return const Center(child: CircularProgressIndicator());
           }
 
-          // Get books data
-          final authorBooks = snapshot.data!.docs.map((doc) {
+          // Get all books data
+          final allBooks = snapshot.data!.docs.map((doc) {
             final data = doc.data() as Map<String, dynamic>;
             return {
               'id': doc.id,
@@ -68,22 +68,31 @@ class _AuthorDashboardScreenState extends State<AuthorDashboardScreen> {
               'ratingsCount': data['ratingsCount'] ?? 0,
               'views': data['views'] ?? 0,
               'readers': data['readers'] ?? 0,
+              'status': data['status'] ?? 'published',
             };
           }).toList();
 
-          // Calculate stats
-          final publishedCount = authorBooks.length;
-          final totalReaders = authorBooks.fold<int>(
+          // Separate books by status
+          final publishedBooks = allBooks
+              .where((book) => book['status'] == 'published')
+              .toList();
+          final pendingBooks = allBooks
+              .where((book) => book['status'] == 'pending')
+              .toList();
+
+          // Calculate stats (only from published books)
+          final publishedCount = publishedBooks.length;
+          final totalReaders = publishedBooks.fold<int>(
             0,
             (total, book) => total + (book['readers'] as int),
           );
-          final averageRating = authorBooks.isEmpty
+          final averageRating = publishedBooks.isEmpty
               ? 0.0
-              : authorBooks.fold<double>(
+              : publishedBooks.fold<double>(
                       0,
                       (total, book) => total + (book['rating'] as double),
                     ) /
-                    authorBooks.length;
+                    publishedBooks.length;
 
           return Column(
             children: [
@@ -234,10 +243,60 @@ class _AuthorDashboardScreenState extends State<AuthorDashboardScreen> {
 
                       const SizedBox(height: 24),
 
-                      // Buku Anda section
+                      // Pending Review section
+                      if (pendingBooks.isNotEmpty) ...[
+                        Center(
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Menunggu Persetujuan',
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  '${pendingBooks.length}',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        ...pendingBooks.map(
+                          (book) => Center(
+                            child: Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: _buildBookCard(
+                                context,
+                                book,
+                                isPending: true,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 24),
+                      ],
+
+                      // Published Books section
                       Center(
                         child: Text(
-                          'Buku Anda',
+                          'Buku Terpublikasi',
                           style: theme.textTheme.titleLarge?.copyWith(
                             fontWeight: FontWeight.w600,
                           ),
@@ -246,7 +305,7 @@ class _AuthorDashboardScreenState extends State<AuthorDashboardScreen> {
                       const SizedBox(height: 12),
 
                       // Book list
-                      if (authorBooks.isEmpty)
+                      if (publishedBooks.isEmpty)
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.all(32),
@@ -269,21 +328,23 @@ class _AuthorDashboardScreenState extends State<AuthorDashboardScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Belum ada buku',
+                                'Belum ada buku terpublikasi',
                                 style: theme.textTheme.titleMedium?.copyWith(
                                   fontWeight: FontWeight.w600,
                                 ),
                               ),
                               const SizedBox(height: 8),
                               Text(
-                                'Mulai upload buku pertama Anda',
+                                pendingBooks.isNotEmpty
+                                    ? 'Menunggu moderator menyetujui buku Anda'
+                                    : 'Mulai upload buku pertama Anda',
                                 style: theme.textTheme.bodyMedium,
                               ),
                             ],
                           ),
                         )
                       else
-                        ...authorBooks.map(
+                        ...publishedBooks.map(
                           (book) => Padding(
                             padding: const EdgeInsets.only(bottom: 12),
                             child: _buildBookCard(context, book),
@@ -388,13 +449,17 @@ class _AuthorDashboardScreenState extends State<AuthorDashboardScreen> {
     );
   }
 
-  Widget _buildBookCard(BuildContext context, Map<String, dynamic> book) {
+  Widget _buildBookCard(
+    BuildContext context,
+    Map<String, dynamic> book, {
+    bool isPending = false,
+  }) {
     final theme = Theme.of(context);
 
-    // Get stats from book data
-    final views = book['views'] as int;
-    final readers = book['readers'] as int;
-    final rating = book['rating'] as double;
+    // Get stats from book data (only show for published books)
+    final views = isPending ? 0 : (book['views'] as int);
+    final readers = isPending ? 0 : (book['readers'] as int);
+    final rating = isPending ? 0.0 : (book['rating'] as double);
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -445,46 +510,64 @@ class _AuthorDashboardScreenState extends State<AuthorDashboardScreen> {
 
           // Status badge
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
-              color: const Color(0xFFD1FAE5),
+              color: isPending
+                  ? const Color(0xFFFEF3C7)
+                  : const Color(0xFFD1FAE5),
               borderRadius: BorderRadius.circular(8),
             ),
-            child: Text(
-              'Published',
-              style: theme.textTheme.labelMedium?.copyWith(
-                color: const Color(0xFF008236),
-                fontWeight: FontWeight.w600,
-              ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  isPending ? Icons.pending : Icons.check_circle,
+                  size: 16,
+                  color: isPending
+                      ? const Color(0xFFD97706)
+                      : const Color(0xFF008236),
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  isPending ? 'Pending Review' : 'Published',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: isPending
+                        ? const Color(0xFFD97706)
+                        : const Color(0xFF008236),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
             ),
           ),
           const SizedBox(height: 16),
 
           // Stats
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4),
-            child: Row(
-              children: [
-                _buildBookStat(
-                  context,
-                  label: 'Views',
-                  value: views.toString(),
-                ),
-                const SizedBox(width: 6),
-                _buildBookStat(
-                  context,
-                  label: 'Readers',
-                  value: readers.toString(),
-                ),
-                const SizedBox(width: 6),
-                _buildBookStat(
-                  context,
-                  label: 'Rating',
-                  value: rating.toStringAsFixed(1),
-                ),
-              ],
+          if (!isPending)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4),
+              child: Row(
+                children: [
+                  _buildBookStat(
+                    context,
+                    label: 'Views',
+                    value: views.toString(),
+                  ),
+                  const SizedBox(width: 6),
+                  _buildBookStat(
+                    context,
+                    label: 'Readers',
+                    value: readers.toString(),
+                  ),
+                  const SizedBox(width: 6),
+                  _buildBookStat(
+                    context,
+                    label: 'Rating',
+                    value: rating.toStringAsFixed(1),
+                  ),
+                ],
+              ),
             ),
-          ),
         ],
       ),
     );

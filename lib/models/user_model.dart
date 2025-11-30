@@ -6,6 +6,9 @@ class User {
   final String? profileImageUrl;
   final String role;
   final Map<String, dynamic>? authorProfile;
+  final String?
+  authorApplicationStatus; // 'pending', 'approved', 'rejected', null
+  final DateTime? authorApplicationDate;
 
   User({
     required this.id,
@@ -15,6 +18,8 @@ class User {
     this.profileImageUrl,
     this.role = 'reader',
     this.authorProfile,
+    this.authorApplicationStatus,
+    this.authorApplicationDate,
   }) : joinedDate = joinedDate ?? DateTime.now();
 
   // Get initial for avatar
@@ -50,6 +55,8 @@ class User {
     String? profileImageUrl,
     String? role,
     Map<String, dynamic>? authorProfile,
+    String? authorApplicationStatus,
+    DateTime? authorApplicationDate,
   }) {
     return User(
       id: id ?? this.id,
@@ -59,6 +66,10 @@ class User {
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       role: role ?? this.role,
       authorProfile: authorProfile ?? this.authorProfile,
+      authorApplicationStatus:
+          authorApplicationStatus ?? this.authorApplicationStatus,
+      authorApplicationDate:
+          authorApplicationDate ?? this.authorApplicationDate,
     );
   }
 
@@ -72,6 +83,8 @@ class User {
       'profileImageUrl': profileImageUrl,
       'role': role,
       'authorProfile': authorProfile,
+      'authorApplicationStatus': authorApplicationStatus,
+      'authorApplicationDate': authorApplicationDate?.toIso8601String(),
     };
   }
 
@@ -85,6 +98,10 @@ class User {
       profileImageUrl: map['profileImageUrl'] as String?,
       role: map['role'] as String? ?? 'reader',
       authorProfile: map['authorProfile'] as Map<String, dynamic>?,
+      authorApplicationStatus: map['authorApplicationStatus'] as String?,
+      authorApplicationDate: map['authorApplicationDate'] != null
+          ? DateTime.parse(map['authorApplicationDate'] as String)
+          : null,
     );
   }
 

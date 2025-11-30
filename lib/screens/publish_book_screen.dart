@@ -41,6 +41,7 @@ class _PublishBookDialogState extends State<PublishBookDialog> {
     'Biography',
     'Self-Help',
     'History',
+    'Philosophy',
     'Poetry',
   ];
 
@@ -81,7 +82,7 @@ class _PublishBookDialogState extends State<PublishBookDialog> {
           ? 'https://via.placeholder.com/300x450/9810FA/FFFFFF?text=Book+Cover'
           : _coverUrlController.text.trim();
 
-      // Create published book document
+      // Create published book document with pending status
       final bookData = {
         'title': _titleController.text.trim(),
         'author': userName,
@@ -91,8 +92,9 @@ class _PublishBookDialogState extends State<PublishBookDialog> {
         'totalPages': int.parse(_totalPagesController.text.trim()),
         'coverUrl': coverUrl,
         'contentPreview': _contentPreviewController.text.trim(),
-        'status': 'published',
-        'publishedAt': FieldValue.serverTimestamp(),
+        'status':
+            'pending', // Changed from 'published' to 'pending' for moderator approval
+        'submittedAt': FieldValue.serverTimestamp(),
         'createdAt': FieldValue.serverTimestamp(),
         'views': 0,
         'readers': 0,
@@ -112,7 +114,9 @@ class _PublishBookDialogState extends State<PublishBookDialog> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Buku berhasil dipublikasikan!'),
+            content: Text(
+              'Buku berhasil disubmit! Menunggu persetujuan moderator.',
+            ),
             backgroundColor: Colors.green,
           ),
         );

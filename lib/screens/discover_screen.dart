@@ -108,6 +108,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
               child: StreamBuilder<QuerySnapshot>(
                 stream: FirebaseFirestore.instance
                     .collection('published_books')
+                    .where('status', isEqualTo: 'published')
                     .snapshots(),
                 builder: (context, snapshot) {
                   // Show loading or error
@@ -136,6 +137,7 @@ class _DiscoverScreenState extends State<DiscoverScreen> {
                       'views': data['views'] ?? 0,
                       'readers': data['readers'] ?? 0,
                       'publishedAt': data['publishedAt'] ?? Timestamp.now(),
+                      'status': data['status'] ?? 'published',
                     };
                   }).toList();
 

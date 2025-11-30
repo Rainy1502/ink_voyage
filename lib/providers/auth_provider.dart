@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart' as firebase_auth;
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/user_model.dart';
+import '../services/author_application_service.dart';
 
 class AuthProvider with ChangeNotifier {
   final firebase_auth.FirebaseAuth _auth = firebase_auth.FirebaseAuth.instance;
@@ -21,8 +22,12 @@ class AuthProvider with ChangeNotifier {
   AuthProvider() {
     _auth.authStateChanges().listen((firebase_auth.User? firebaseUser) {
       if (firebaseUser != null) {
+        debugPrint(
+          '🔔 AUTH STATE CHANGED - Loading user data for ${firebaseUser.uid}',
+        );
         _loadUserData(firebaseUser.uid);
       } else {
+        debugPrint('🔔 AUTH STATE CHANGED - User logged out');
         _currentUser = null;
         notifyListeners();
       }
@@ -32,13 +37,19 @@ class AuthProvider with ChangeNotifier {
   // Load user data from Firestore
   Future<void> _loadUserData(String uid) async {
     try {
+      debugPrint('📥 LOADING USER DATA from Firestore...');
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
-        _currentUser = User.fromMap(doc.data()!);
+        final userData = doc.data()!;
+        debugPrint('📋 FIRESTORE DATA: $userData');
+        _currentUser = User.fromMap(userData);
+        debugPrint(
+          '✅ USER LOADED - Role: ${_currentUser!.role}, Status: ${_currentUser!.authorApplicationStatus}',
+        );
         notifyListeners();
       }
     } catch (e) {
-      debugPrint('Error loading user data: $e');
+      debugPrint('❌ Error loading user data: $e');
     }
   }
 
@@ -206,24 +217,37 @@ class AuthProvider with ChangeNotifier {
       _isLoading = true;
       notifyListeners();
 
-      final authorProfile = {
+      debugPrint(
+        '🔵 BEFORE submitApplication - User role: ${_currentUser!.role}',
+      );
+
+      final applicationData = {
         'bio': bio,
         'experience': experience,
         'motivation': motivation,
-        // For now auto-approve the application so user becomes author immediately
-        'approved': true,
-        'appliedAt': DateTime.now().toIso8601String(),
       };
 
-      await _firestore.collection('users').doc(_currentUser!.id).update({
-        'role': 'author',
-        'authorProfile': authorProfile,
-      });
-
-      _currentUser = _currentUser!.copyWith(
-        role: 'author',
-        authorProfile: authorProfile,
+      // Submit application (will be pending until moderator approves)
+      final applicationService = AuthorApplicationService();
+      await applicationService.submitApplication(
+        userId: _currentUser!.id,
+        userName: _currentUser!.name,
+        userEmail: _currentUser!.email,
+        applicationData: applicationData,
       );
+
+      debugPrint('🟢 AFTER submitApplication - Manually updating local user');
+
+      // Manually update current user with pending status (don't reload to avoid race condition)
+      _currentUser = _currentUser!.copyWith(
+        authorApplicationStatus: 'pending',
+        authorApplicationDate: DateTime.now(),
+      );
+
+      debugPrint(
+        '🟡 Local user updated - Role: ${_currentUser!.role}, Status: ${_currentUser!.authorApplicationStatus}',
+      );
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -231,6 +255,7 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       _errorMessage = 'Gagal mengajukan menjadi author: $e';
       notifyListeners();
+      debugPrint('🔴 ERROR in becomeAuthor: $e');
       return false;
     }
   }
