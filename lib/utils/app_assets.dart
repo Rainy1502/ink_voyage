@@ -6,14 +6,9 @@ class AppAssets {
   // Base paths
   static const String _basePath = 'assets/images';
   static const String _iconsPath = '$_basePath/icons';
-  static const String _sampleBooksPath = '$_basePath/sample_books';
 
   // Main Images
   static const String appLogo = '$_basePath/app_logo.png';
-
-  // Sample Book Covers
-  static const String bookCoverCrimeAndPunishment =
-      '$_sampleBooksPath/book_cover_crime_and_punishment.png';
 
   // Navigation Icons
   static const String navBooksIcon = '$_iconsPath/nav_books_icon.svg';
@@ -33,7 +28,6 @@ class AppAssets {
 
   // Feature Icons
   static const String achievementIcon = '$_iconsPath/achievement_icon.svg';
-  static const String darkModeIcon = '$_iconsPath/dark_mode_icon.svg';
   static const String logoutIcon = '$_iconsPath/logout_icon.svg';
 
   // Chart Icons
@@ -42,7 +36,4 @@ class AppAssets {
 
   // Action Icons
   static const String closeIcon = '$_iconsPath/close_icon.svg';
-
-  // Sample book covers list (for testing/demo)
-  static const List<String> sampleBookCovers = [bookCoverCrimeAndPunishment];
 }

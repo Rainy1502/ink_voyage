@@ -1,45 +1,107 @@
-# Miscellaneous
-*.class
-*.log
-*.pyc
-*.swp
-.DS_Store
-.atom/
-.build/
-.buildlog/
-.history
-.svn/
-.swiftpm/
-migrate_working_dir/
+# =============================================================================
+# INK VOYAGE - OPTIMIZED .GITIGNORE
+# Hanya file esensial untuk development dan production yang di-commit
+# =============================================================================
 
-# IntelliJ related
-*.iml
-*.ipr
-*.iws
-.idea/
+# PRODUCTION BUILDS & ARTIFACTS (JANGAN COMMIT)
+build/
+/build/
+*.apk
+*.ipa
+*.app
+*.aar
+*.tar.gz
 
-# The .vscode folder contains launch configuration and tasks you configure in
-# VS Code which you may wish to be included in version control, so this line
-# is commented out by default.
-#.vscode/
+# Android build artifacts
+/android/app/debug/
+/android/app/profile/
+/android/app/release/
+/android/.gradle/
+/android/local.properties
 
-# Flutter/Dart/Pub related
-**/doc/api/
-**/ios/Flutter/.last_build_id
+# iOS build artifacts
+/ios/Pods/
+/ios/Podfile.lock
+/ios/Flutter/Flutter.framework/
+/ios/Flutter/Flutter.podspec
+
+# Web build artifacts
+/web/flutter_service_worker.js
+
+# FLUTTER/DART BUILD & CACHE (JANGAN COMMIT)
 .dart_tool/
+.flutter-plugins
 .flutter-plugins-dependencies
 .pub-cache/
 .pub/
-/build/
+pubspec.lock
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Coverage reports
 /coverage/
+.coverage
 
-# Symbolication related
+# Code generation
+**/generated/
+*.g.dart
+*.freezed.dart
+*.config.dart
+
+# IDE & EDITOR FILES (JANGAN COMMIT)
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+*.sublime-project
+*.sublime-workspace
+.project
+.classpath
+*.c9/
+*.swp
+*.swo
+*~
+.DS_Store
+.env.local
+.env.*.local
+
+# SYSTEM & TEMPORARY FILES (JANGAN COMMIT)
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+*.log
+*.swp
+*.class
+*.pyc
+.history
+.svn/
+.atom/
+.build/
+.buildlog/
+migrate_working_dir/
+
+# Temporary files
+*.bak
+*.tmp
+*.temp
+*~
+
+# FIREBASE & SECRETS (JANGAN COMMIT CREDENTIALS!)
+.env
+.env.local
+*.pem
+*.key
+
+# DEBUG & SYMBOL FILES (JANGAN COMMIT)
 app.*.symbols
-
-# Obfuscation related
 app.*.map.json
+*.symbols
+*.map
 
-# Android Studio will place build artifacts here
-/android/app/debug
-/android/app/profile
-/android/app/release
+# USANG FOLDER (DEPRECATED FILES)
+usang/
+CLEANUP_REPORT.md
+.vscode/
